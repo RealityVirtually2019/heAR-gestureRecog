@@ -20,26 +20,26 @@ def preprocess_image(image):
 	sobely = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=5)
 	return sobely
 
+def sort_key(elem):
+	return elem[0]
+
 def predict_classes(path):
 	img = cv2.imread(path)
 	img = cv2.resize(img, (64,64))
 	img = preprocess_image(img)
-	# img = np.array(img) / 255.0
-	# img_std = np.std(np.array(img))
 	img = np.array(img).astype(np.float64)
 	img -= np.mean(img)
 	img /= np.std(img)
 	img = np.expand_dims(img, axis=0)
 	prediction = model.predict(img)
 	print (prediction)
-	mnum = 0
-	mindex = 0
+	arr = []
 	for i in range(0, 29):
-		if (prediction[0][i] > mnum):
-			mnum = prediction[0][i]
-			mindex = i
-	print (mindex)
-	return mindex
+		arr.append([prediction[0][i], i])
+	arr.sort(key=sort_key, reverse=True)
+	print (arr)
+	print (arr[:3])
+	return arr[:3]
 
 # predict_classes
 
@@ -54,18 +54,20 @@ def gestureImage():
 	r = request
 	file = r.files['data'];
 	file.save('test.jpg')
-	result = predict_classes('test.jpg')
-
-	print (result)
+	results = predict_classes('test.jpg')
+	print (results)
 	response = ""
-	if (result < 26):
-		response = chr(ord('A') + result)
-	elif result == 26:
-		response = "del"
-	elif result == 27:
-		response = "nothing"
-	else:
-		response = "space"
+	for result_kv in results:
+		result = result_kv[1]
+		if (result < 26):
+			response += chr(ord('A') + result)
+		elif result == 26:
+			response += "del"
+		elif result == 27:
+			response += "nothing"
+		else:
+			response += "space"
+		response += "/"
 	return Response(response=response, status=200, mimetype="text")
 
 app.run()
